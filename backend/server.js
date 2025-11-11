@@ -101,19 +101,44 @@ app.post('/api/auth/verify-otp', (req, res) => {
 // ==================== USER ROUTES ====================
 
 // Получить профиль
-app.get('/api/user/profile', authenticateToken, (req, res) => {
+// Обновить профиль
+app.put('/api/user/profile', authenticateToken, (req, res) => {
   try {
-    const user = db.prepare('SELECT id, email, phone, name, unit_system, timezone, birth_date, gender, created_at FROM users WHERE id = ?')
-      .get(req.userId);
+    const { name, unit_system, timezone, birth_date, gender } = req.body;
 
-    if (!user) {
+    console.log('Update profile request:', { userId: req.userId, body: req.body });
+
+    if (!name || !unit_system) {
+      return res.status(400).json({ error: 'Name and unit_system are required' });
+    }
+
+    if (!['kg', 'lb'].includes(unit_system)) {
+      return res.status(400).json({ error: 'unit_system must be kg or lb' });
+    }
+
+    const result = db.prepare(`
+      UPDATE users 
+      SET name = ?, unit_system = ?, timezone = ?, birth_date = ?, gender = ?
+      WHERE id = ?
+    `).run(
+      name.trim(), 
+      unit_system, 
+      timezone || 'UTC', 
+      birth_date || null, 
+      gender || null, 
+      req.userId
+    );
+
+    console.log('Update result:', result);
+
+    if (result.changes === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(user);
+    res.json({ message: 'Profile updated successfully' });
   } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({ error: 'Failed to get profile' });
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 

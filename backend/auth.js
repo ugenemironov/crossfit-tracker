@@ -65,19 +65,35 @@ export function createToken(userId) {
 
 export function authenticateToken(req, res, next) {
   try {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'No token' });
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
+    if (!token) {
+      console.error('❌ No token provided');
+      return res.status(401).json({ error: 'No token' });
+    }
+
+    console.log('🔑 Verifying token...');
     const decoded = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(decoded.userId);
-    if (!user) return res.status(403).json({ error: 'User not found' });
+    console.log('✅ Token decoded:', decoded);
 
+    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(decoded.userId);
+    
+    if (!user) {
+      console.error('❌ User not found for ID:', decoded.userId);
+      console.log('Available users:', users); // Для дебага
+      return res.status(403).json({ error: 'User not found' });
+    }
+
+    console.log('✅ User authenticated:', user.id);
     req.userId = decoded.userId;
     next();
   } catch (error) {
+    console.error('❌ Auth error:', error.message);
     return res.status(403).json({ error: 'Invalid token' });
   }
 }
+
 
 export function checkOTPRateLimit(email, phone) {
   const fiveMin = new Date(Date.now() - 5 * 60 * 1000).toISOString();

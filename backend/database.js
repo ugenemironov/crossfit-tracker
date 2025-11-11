@@ -279,67 +279,78 @@ if (sql.includes('UPDATE users')) {
       return { lastInsertRowid: 0, changes: 0 };
     },
 
-    get: (...params) => {
-      if (sql.includes('SELECT * FROM users WHERE email')) {
-        return users.find(u => u.email === params[0] || u.phone === params[1]) || null;
-      }
+get: (...params) => {
+  if (sql.includes('SELECT * FROM users WHERE email')) {
+    const user = users.find(u => u.email === params[0] || u.phone === params[1]);
+    console.log('Finding user by email/phone:', params[0], params[1], '→', user ? 'FOUND' : 'NOT FOUND');
+    return user || null;
+  }
 
-      if (sql.includes('SELECT * FROM users WHERE id')) {
-        return users.find(u => u.id === params[0]) || null;
-      }
+  if (sql.includes('SELECT * FROM users WHERE id')) {
+    const user = users.find(u => u.id === params[0]);
+    console.log('Finding user by id:', params[0], '→', user ? 'FOUND' : 'NOT FOUND');
+    return user || null;
+  }
 
-      if (sql.includes('SELECT id, email, phone, name')) {
-        return users.find(u => u.id === params[0]) || null;
-      }
+  if (sql.includes('SELECT id, email')) {
+    const user = users.find(u => u.id === params[0]);
+    console.log('Finding user profile by id:', params[0], '→', user ? 'FOUND' : 'NOT FOUND');
+    return user || null;
+  }
 
-      if (sql.includes('SELECT id FROM users WHERE id')) {
-        return users.find(u => u.id === params[0]) ? { id: params[0] } : null;
-      }
+  if (sql.includes('SELECT id FROM users WHERE id')) {
+    const user = users.find(u => u.id === params[0]);
+    console.log('Auth check - Finding user by id:', params[0], '→', user ? 'FOUND' : 'NOT FOUND');
+    console.log('Total users in DB:', users.length);
+    return user ? { id: user.id } : null;
+  }
 
-      if (sql.includes('SELECT * FROM otp_codes')) {
-        const [email, phone, code, now] = params;
-        return otpCodes.find(o => 
-          (o.email === email || o.phone === phone) && 
-          o.code === code && 
-          o.used === 0 && 
-          o.expires_at > now
-        ) || null;
-      }
+  if (sql.includes('SELECT * FROM otp_codes')) {
+    const [email, phone, code, now] = params;
+    return otpCodes.find(o => 
+      (o.email === email || o.phone === phone) && 
+      o.code === code && 
+      o.used === 0 && 
+      o.expires_at > now
+    ) || null;
+  }
 
-      if (sql.includes('COUNT(*) as count FROM otp_codes')) {
-        const [fiveMin, email, phone] = params;
-        const count = otpCodes.filter(o => 
-          o.created_at > fiveMin && 
-          (o.email === email || o.phone === phone)
-        ).length;
-        return { count };
-      }
+  if (sql.includes('COUNT(*) as count FROM otp_codes')) {
+    const [fiveMin, email, phone] = params;
+    const count = otpCodes.filter(o => 
+      o.created_at > fiveMin && 
+      (o.email === email || o.phone === phone)
+    ).length;
+    return { count };
+  }
 
-      if (sql.includes('SELECT * FROM pr_records WHERE id')) {
-        const recordId = params[0];
-        return prRecords.find(r => r.id === recordId && r.user_id === params[1]) || null;
-      }
+  if (sql.includes('SELECT * FROM pr_records WHERE id')) {
+    const recordId = params[0];
+    return prRecords.find(r => r.id === recordId && r.user_id === params[1]) || null;
+  }
 
-      if (sql.includes('SELECT * FROM wod_results WHERE id')) {
-        const resultId = params[0];
-        return wodResults.find(r => r.id === resultId && r.user_id === params[1]) || null;
-      }
+  if (sql.includes('SELECT * FROM wod_results WHERE id')) {
+    const resultId = params[0];
+    return wodResults.find(r => r.id === resultId && r.user_id === params[1]) || null;
+  }
 
-      if (sql.includes('SELECT format FROM wods WHERE id')) {
-        const wod = wods.find(w => w.id === params[0]);
-        return wod ? { format: wod.format } : null;
-      }
+  if (sql.includes('SELECT format FROM wods WHERE id')) {
+    const wod = wods.find(w => w.id === params[0]);
+    return wod ? { format: wod.format } : null;
+  }
 
-      if (sql.includes('MAX(est_1rm) as best_1rm FROM pr_records')) {
-        const userId = params[0];
-        const userRecords = prRecords.filter(r => r.user_id === userId && r.est_1rm);
-        return userRecords.length > 0 
-          ? { best_1rm: Math.max(...userRecords.map(r => r.est_1rm)) }
-          : { best_1rm: null };
-      }
+  if (sql.includes('MAX(est_1rm) as best_1rm FROM pr_records')) {
+    const userId = params[0];
+    const userRecords = prRecords.filter(r => r.user_id === userId && r.est_1rm);
+    return userRecords.length > 0 
+      ? { best_1rm: Math.max(...userRecords.map(r => r.est_1rm)) }
+      : { best_1rm: null };
+  }
 
-      return null;
-    },
+  console.log('⚠️ Unhandled GET query:', sql.substring(0, 50));
+  return null;
+}
+
 
     all: (...params) => {
       if (sql.includes('FROM movements')) {

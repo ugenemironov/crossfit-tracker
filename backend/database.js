@@ -182,26 +182,31 @@ const db = {
         wodResults.push(result);
         return { lastInsertRowid: result.id };
       }
-      if (sql.includes('UPDATE users')) {
-        const userId = params[params.length - 1];
-        const user = users.find(u => u.id === userId);
-      if (user) {
-      if (sql.includes('name =')) {
+if (sql.includes('UPDATE users')) {
+  const userId = params[params.length - 1];
+  console.log('Updating user with ID:', userId);
+  console.log('Update params:', params);
+  
+  const user = users.find(u => u.id === userId);
+  
+  if (user) {
+    if (sql.includes('name =')) {
       // Обновление профиля
-      user.name = params[0];
-      user.unit_system = params[1];
-      user.timezone = params[2] || 'UTC';
-      user.birth_date = params[3] || null;
-      user.gender = params[4] || null;
+      user.name = params[0] || user.name;
+      user.unit_system = params[1] || user.unit_system;
+      user.timezone = params[2] || user.timezone || 'UTC';
+      user.birth_date = params[3] || user.birth_date || null;
+      user.gender = params[4] || user.gender || null;
       console.log('✅ User profile updated:', user);
     }
-      if (sql.includes('last_login')) {
-        user.last_login = new Date().toISOString();
+    if (sql.includes('last_login')) {
+      user.last_login = new Date().toISOString();
     }
-  }   else {
-      console.error('❌ User not found for update:', userId);
+    return { changes: 1 };
+  } else {
+    console.error('❌ User not found for update:', userId);
+    return { changes: 0 };
   }
-          return { changes: user ? 1 : 0 };
 }
 
       if (sql.includes('UPDATE pr_records')) {
